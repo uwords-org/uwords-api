@@ -11,3 +11,7 @@ class ResponseService:
     @staticmethod
     def return_not_found(msg):
         return Response(msg, HTTPStatus.NOT_FOUND)
+
+    @staticmethod
+    def return_bad_request(msg):
+        return Response(msg, HTTPStatus.BAD_REQUEST)

@@ -16,3 +16,8 @@ class UserWordSerializer(serializers.ModelSerializer):
 
     word = WordSerializer()
     user = UserDumpSerializer()
+
+
+class YoutubeAudioSerializer(serializers.Serializer):
+    link = serializers.CharField(required=True)
+    

@@ -11,7 +11,8 @@ class Word(models.Model):
     value = models.CharField(
         verbose_name='Слово',
         blank=False, 
-        null=False
+        null=False,
+        unique=True
     )
 
     audio = models.CharField(

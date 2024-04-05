@@ -6,3 +6,8 @@ django-redis==5.4.0
 djangorestframework==3.15.1
 python-dotenv==1.0.1
 psycopg2-binary==2.9.9
+SpeechRecognition==3.10.3
+nltk==3.8.1
+ffmpeg-downloader==0.3.0
+pytube==15.0.0
+librosa==0.10.1

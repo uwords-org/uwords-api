@@ -1,6 +1,11 @@
 # environment
 .env
 
+# audios
+**.wav
+**.ogg
+**.mp3
+
 # dirs
 postgres-data/
 venv/
