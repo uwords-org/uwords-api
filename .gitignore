@@ -1,0 +1,8 @@
+# environment
+.env
+
+# dirs
+postgres-data/
+venv/
+.idea/
+**/__pycache__
