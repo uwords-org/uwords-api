@@ -1,27 +1,20 @@
 import uuid
-import nltk
 import string
 import logging
+import pymorphy3
 import subprocess
+
 from pytube import YouTube
 from librosa import get_duration
-from nltk.corpus import stopwords
-from nltk.probability import FreqDist
-from nltk.tokenize import word_tokenize
-from nltk.stem.snowball import SnowballStemmer
+from googletrans import Translator
 from speech_recognition import Recognizer, AudioFile
 
 from words_api.models import UserWord
+from uwords_api.instance import STOPWORDS
 
 
 sr = Recognizer()
-ps = SnowballStemmer("russian")
 
-
-nltk.download('punkt')
-nltk.download('wordnet')
-nltk.download('omw-1.4')
-nltk.download('stopwords')
 
 
 class AudioFileService:
@@ -58,7 +51,6 @@ class AudioFileService:
             logging.info(e)
             return None
     
-
     @staticmethod
     def cut_audio(path: str, title: str) -> list[str]:
         files = []
@@ -86,7 +78,6 @@ class AudioFileService:
             logging.info(e)
             return None
 
-
     @staticmethod
     def convert_audio(path: str, title: str) -> str:
         try:
@@ -102,33 +93,75 @@ class AudioFileService:
             return None
         
     @staticmethod
-    def speech_to_text(filepath: str) -> str:
+    def speech_to_text_en(filepath: str) -> str:
+        try:
+            with AudioFile(filepath) as source:
+                audio_data = sr.record(source)
+                text = sr.recognize_google(audio_data, language='en-US')
+                
+                return text.lower()
+        
+        except Exception as e:
+            logging.info(e)
+            return ' '
+        
+    @staticmethod
+    def speech_to_text_ru(filepath: str) -> str:
+        try:
+            with AudioFile(filepath) as source:
+                audio_data = sr.record(source)
+                text = sr.recognize_google(audio_data, language='ru-RU')
+                
+                return text.lower()
+        
+        except Exception as e:
+            logging.info(e)
+            return ' '
+        
+    @staticmethod
+    def detect_lang(filepath: str) -> str:
+        try:
+            with AudioFile(filepath) as source:
+                audio_data = sr.record(source)
+                
+                text_ru = sr.recognize_google(audio_data, language='ru-RU')
+                text_en = sr.recognize_google(audio_data, language='en-US')
 
-        with AudioFile(filepath) as source:
-
-            audio_data = sr.record(source)
-            text = sr.recognize_google(audio_data, language="ru")
-            
-            return text.lower()
+                if len(text_ru) > len(text_en):
+                    return True
+                
+                return False
+        
+        except Exception as e:
+            logging.info(e)
+            return False
         
 
 class TextService:
 
     @staticmethod
-    def remove_punctuation(text: str) -> str:
-        spec_chars = string.punctuation + '\n\xa0«»\t—…' 
+    def remove_spec_chars(text: str) -> str:
+        spec_chars = string.punctuation + '\n\xa0«»\t—…' + '0123456789'
         return "".join([char for char in text if char not in spec_chars])
     
     @staticmethod
     def remove_stop_words(text: str) -> list[str]:
-        ru_stopwords = stopwords.words("russian")
-        return " ".join([word for word in text.split() if word not in ru_stopwords])
+        return [word for word in text.split() if word not in STOPWORDS]
     
     @staticmethod
-    def create_freq_dict(text: str) -> dict:
+    def normalize_words(words: list[str]) -> list[str]:
+        norm_words = []
+        
+        for word in words:
+            norm_words.append(pymorphy3.analyzer.MorphAnalyzer().parse(word)[0].normal_form)
+
+        return norm_words
+    
+    @staticmethod
+    def create_freq_dict(words: list[str]) -> dict:
         freq_dict = {}
         
-        for word in text.split():
+        for word in words:
             if word not in freq_dict.keys():
                 freq_dict[word] = 1
             else:
@@ -138,13 +171,38 @@ class TextService:
     
     @staticmethod
     def get_frequency_dict(text: str) -> dict:
-        text_without_spec_chars = TextService.remove_punctuation(text=text)
-        text_without_stop_words = TextService.remove_stop_words(text=text_without_spec_chars)
+        text_without_spec_chars = TextService.remove_spec_chars(text=text)
+        
+        words = TextService.remove_stop_words(text=text_without_spec_chars)
 
-        freq_dict = TextService.create_freq_dict(text=text_without_stop_words)
+        norm_words = TextService.normalize_words(words=words)
+
+        freq_dict = TextService.create_freq_dict(words=norm_words)
         
         return freq_dict
-        
+    
+    @staticmethod
+    def translate(words: dict, from_lang: str, to_lang: str) -> list[dict]:
+        translator = Translator()
+
+        translated_words = []
+
+        for word in words.keys():
+            try:
+                translated = translator.translate(word, src=from_lang, dest=to_lang)
+
+                translated_words.append({
+                    'initial_word': word.capitalize(),
+                    'translated_word': translated.text.capitalize(),
+                    'frequency': words[word]
+                })
+
+            except Exception as e:
+                logging.info(e)
+                continue
+
+        return translated_words
+
 
 class UserWordService:
 
@@ -152,17 +210,3 @@ class UserWordService:
     def get_user_words(user_id: int) -> list[UserWord]:
         user_words = UserWord.objects.filter(user__id=user_id).all()
         return user_words
-    
-    
-
-        
-    @staticmethod
-    def sentence_splitter(text: str) -> list[str]:
-        words = word_tokenize(text)
-
-        result = []
-
-        for w in words:
-            result.append(f'{w} : {ps.stem(w)}')
-
-        return result

@@ -8,11 +8,18 @@ class Word(models.Model):
         primary_key=True
     )
 
-    value = models.CharField(
-        verbose_name='Слово',
+    en_value = models.CharField(
+        verbose_name='Слово (англ)',
         blank=False, 
         null=False,
-        unique=True
+        default=''
+    )
+
+    ru_value = models.CharField(
+        verbose_name='Слово (рус)',
+        blank=False, 
+        null=False,
+        default=''
     )
 
     audio = models.CharField(
@@ -49,6 +56,13 @@ class UserWord(models.Model):
         blank=False,
         null=False,
         on_delete=models.CASCADE
+    )
+
+    frequency = models.IntegerField(
+        verbose_name='Частотность',
+        blank=False, 
+        null=False,
+        default=0
     )
 
     isChecked = models.BooleanField(

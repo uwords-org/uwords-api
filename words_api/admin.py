@@ -3,14 +3,14 @@ from words_api.models import Word, UserWord
 
 
 class WordAdmin(admin.ModelAdmin):
-    list_display = ("id", "value", "audio", )
-    search_fields = ("value", )
+    list_display = ("id", "en_value", "ru_value", "audio", )
+    search_fields = ("en_value", "ru_value", )
     ordering = ("id", )
 
 
 class UserWordAdmin(admin.ModelAdmin):
-    list_display = ("id", "word", "user", "isChecked", )
-    search_fields = ("word__value",)
+    list_display = ("id", "word", "user", "frequency", "isChecked", )
+    search_fields = ("word__en_value", "word__ru_value",)
     ordering = ("id",)
 
 

@@ -5,6 +5,8 @@ import uuid
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 
+from concurrent.futures import ThreadPoolExecutor
+
 from user_api.services import UserService
 from words_api.services import AudioFileService, TextService, UserWordService
 from words_api.serializers import UserWordSerializer, YoutubeAudioSerializer
@@ -53,23 +55,33 @@ class WordAudioAPIView(APIView):
 
             files_paths = AudioFileService.cut_audio(path=out_path, title=title)
 
-            result = []
+            is_ru = AudioFileService.detect_lang(filepath=files_paths[0])
 
+            if is_ru:
+                with ThreadPoolExecutor(max_workers=20) as executor:
+                    results = list(executor.map(AudioFileService.speech_to_text_ru, files_paths))
+            else:
+                with ThreadPoolExecutor(max_workers=20) as executor:
+                    results = list(executor.map(AudioFileService.speech_to_text_en, files_paths))
+
+            freq_dict = TextService.get_frequency_dict(text=' '.join(results))
+
+            if is_ru:
+                translate = TextService.translate(words=freq_dict, from_lang="russian", to_lang="english")
+            else:
+                translate = TextService.translate(words=freq_dict, from_lang="english", to_lang="russian")
+
+            return ResponseService.return_success(msg={"msg": translate})
+
+        except Exception as e:
+            return ResponseService.return_bad_request(msg={"msg": f"Не удалось загрузить файл. {e}"})
+        
+        finally:
             for file_path in files_paths:
-                text = AudioFileService.speech_to_text(filepath=file_path)
-                result.append(text)
-
                 os.remove(path=file_path)
 
             os.remove(path=inp_path)
             os.remove(path=out_path)
-
-            freq_dict = TextService.get_frequency_dict(text=' '.join(result))
-
-            return ResponseService.return_success(msg={"msg": freq_dict})
-
-        except Exception as e:
-            return ResponseService.return_bad_request(msg={"msg": f"Не удалось загрузить файл. {e}"})
         
 
 class YoutubeAudioAPIView(APIView):
@@ -85,20 +97,31 @@ class YoutubeAudioAPIView(APIView):
 
             files_paths = AudioFileService.cut_audio(path=out_path, title=title)
 
-            result = []
+            is_ru = AudioFileService.detect_lang(filepath=files_paths[0])
 
-            for file_path in files_paths:
-                text = AudioFileService.speech_to_text(filepath=file_path)
-                result.append(text)
-                
-                os.remove(path=file_path)
+            if is_ru:
+                with ThreadPoolExecutor(max_workers=20) as executor:
+                    results = list(executor.map(AudioFileService.speech_to_text_ru, files_paths))
+            else:
+                with ThreadPoolExecutor(max_workers=20) as executor:
+                    results = list(executor.map(AudioFileService.speech_to_text_en, files_paths))
 
-            os.remove(path=inp_path)
-            os.remove(path=out_path)
+            freq_dict = TextService.get_frequency_dict(text=' '.join(results))
 
-            freq_dict = TextService.get_frequency_dict(text=' '.join(result))
+            if is_ru:
+                translate = TextService.translate(words=freq_dict, from_lang="russian", to_lang="english")
+            else:
+                translate = TextService.translate(words=freq_dict, from_lang="english", to_lang="russian")
 
-            return ResponseService.return_success(msg={"msg": freq_dict})
+            return ResponseService.return_success(msg={"msg": translate})
 
         except Exception as e:
             return ResponseService.return_bad_request(msg={"msg": f"Не удалось загрузить файл. {e}"})
+        
+        finally:
+            for file_path in files_paths:
+                os.remove(path=file_path)
+            
+            os.remove(path=inp_path)
+            os.remove(path=out_path)
+
