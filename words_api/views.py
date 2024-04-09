@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 
 from concurrent.futures import ThreadPoolExecutor
+from langdetect import detect
 
 from user_api.services import UserService
 from words_api.services import AudioFileService, TextService, UserWordService
@@ -67,11 +68,17 @@ class WordAudioAPIView(APIView):
             freq_dict = TextService.get_frequency_dict(text=' '.join(results))
 
             if is_ru:
-                translate = TextService.translate(words=freq_dict, from_lang="russian", to_lang="english")
+                translated_words = TextService.translate(words=freq_dict, from_lang="russian", to_lang="english")
             else:
-                translate = TextService.translate(words=freq_dict, from_lang="english", to_lang="russian")
+                translated_words = TextService.translate(words=freq_dict, from_lang="english", to_lang="russian")
 
-            return ResponseService.return_success(msg={"msg": translate})
+            UserWordService.upload_user_words(user_words=translated_words, user_id=1)
+
+            user_words = UserWordService.get_user_words(user_id=1)
+
+            return ResponseService.return_success(msg={"msg": translated_words})
+            
+            return ResponseService.return_success(msg={"msg": UserWordSerializer(user_words, many=True).data})
 
         except Exception as e:
             return ResponseService.return_bad_request(msg={"msg": f"Не удалось загрузить файл. {e}"})
@@ -92,14 +99,14 @@ class YoutubeAudioAPIView(APIView):
             youtube = YoutubeAudioSerializer(data=request.data)
             youtube.is_valid(raise_exception=True)
 
-            inp_path, title = AudioFileService.upload_youtube_audio(link=youtube.data.get("link"))
+            inp_path, title, video_title = AudioFileService.upload_youtube_audio(link=youtube.data.get("link"))
             out_path = AudioFileService.convert_audio(path=inp_path, title=title)
 
             files_paths = AudioFileService.cut_audio(path=out_path, title=title)
 
-            is_ru = AudioFileService.detect_lang(filepath=files_paths[0])
+            lang = detect(video_title)
 
-            if is_ru:
+            if lang == 'ru':
                 with ThreadPoolExecutor(max_workers=20) as executor:
                     results = list(executor.map(AudioFileService.speech_to_text_ru, files_paths))
             else:
@@ -108,12 +115,18 @@ class YoutubeAudioAPIView(APIView):
 
             freq_dict = TextService.get_frequency_dict(text=' '.join(results))
 
-            if is_ru:
-                translate = TextService.translate(words=freq_dict, from_lang="russian", to_lang="english")
+            if lang == 'ru':
+                translated_words = TextService.translate(words=freq_dict, from_lang="russian", to_lang="english")
             else:
-                translate = TextService.translate(words=freq_dict, from_lang="english", to_lang="russian")
+                translated_words = TextService.translate(words=freq_dict, from_lang="english", to_lang="russian")
 
-            return ResponseService.return_success(msg={"msg": translate})
+            UserWordService.upload_user_words(user_words=translated_words, user_id=1)
+
+            user_words = UserWordService.get_user_words(user_id=1)
+
+            return ResponseService.return_success(msg={"msg": translated_words})
+            
+            return ResponseService.return_success(msg={"msg": UserWordSerializer(user_words, many=True).data})
 
         except Exception as e:
             return ResponseService.return_bad_request(msg={"msg": f"Не удалось загрузить файл. {e}"})

@@ -8,24 +8,24 @@ class Word(models.Model):
         primary_key=True
     )
 
-    en_value = models.CharField(
+    enValue = models.CharField(
         verbose_name='Слово (англ)',
         blank=False, 
         null=False,
         default=''
     )
 
-    ru_value = models.CharField(
+    ruValue = models.CharField(
         verbose_name='Слово (рус)',
         blank=False, 
         null=False,
         default=''
     )
 
-    audio = models.CharField(
+    audioLink = models.CharField(
         verbose_name='Аудиозапись',
         blank=False,
-        null=False
+        null=True
     )
 
     class Meta:
@@ -33,7 +33,7 @@ class Word(models.Model):
         verbose_name_plural = "Слова"
 
     def __str__(self) -> str:
-        return self.value
+        return self.enValue
 
 
 class UserWord(models.Model):

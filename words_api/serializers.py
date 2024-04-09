@@ -15,7 +15,6 @@ class UserWordSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     word = WordSerializer()
-    user = UserDumpSerializer()
 
 
 class YoutubeAudioSerializer(serializers.Serializer):

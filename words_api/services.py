@@ -4,12 +4,14 @@ import logging
 import pymorphy3
 import subprocess
 
+from gtts import gTTS
 from pytube import YouTube
 from librosa import get_duration
 from googletrans import Translator
 from speech_recognition import Recognizer, AudioFile
 
-from words_api.models import UserWord
+from user_api.services import UserService
+from words_api.models import UserWord, Word
 from uwords_api.instance import STOPWORDS
 
 
@@ -46,7 +48,7 @@ class AudioFileService:
 
             stream.download(filename=download_path)
 
-            return download_path, filename
+            return download_path, filename, video.title
         except Exception as e:
             logging.info(e)
             return None
@@ -109,6 +111,7 @@ class AudioFileService:
     def speech_to_text_ru(filepath: str) -> str:
         try:
             with AudioFile(filepath) as source:
+                sr.adjust_for_ambient_noise(source, duration=0.2)
                 audio_data = sr.record(source)
                 text = sr.recognize_google(audio_data, language='ru-RU')
                 
@@ -118,6 +121,17 @@ class AudioFileService:
             logging.info(e)
             return ' '
         
+    @staticmethod
+    def word_to_speech(word: str):
+        try:
+            tts = gTTS(text=word, lang='en', slow=False)
+            path = f'audiofiles/{word.lower()}.mp3'
+            tts.save(path)
+            return path
+        
+        except:
+            return None
+
     @staticmethod
     def detect_lang(filepath: str) -> str:
         try:
@@ -191,11 +205,19 @@ class TextService:
             try:
                 translated = translator.translate(word, src=from_lang, dest=to_lang)
 
-                translated_words.append({
-                    'initial_word': word.capitalize(),
-                    'translated_word': translated.text.capitalize(),
-                    'frequency': words[word]
-                })
+                if from_lang == "russian":
+                    translated_words.append({
+                        'ruValue': word.capitalize(),
+                        'enValue': translated.text.capitalize(),
+                        'frequency': words[word]
+                    })
+                
+                else:
+                    translated_words.append({
+                        'ruValue': translated.text.capitalize(),
+                        'enValue': word.capitalize(),
+                        'frequency': words[word]
+                    })
 
             except Exception as e:
                 logging.info(e)
@@ -204,9 +226,62 @@ class TextService:
         return translated_words
 
 
+class WordService:
+
+    @staticmethod
+    def get_word(enValue: str) -> Word:
+        try:
+            word = Word.objects.get(enValue=enValue)
+            return word
+        
+        except:
+            return None
+
+    @staticmethod
+    def upload_new_word(enValue: str, ruValue: str) -> Word:
+        audioLink = AudioFileService.word_to_speech(word=enValue)
+        new_word = Word.objects.create(enValue=enValue, ruValue=ruValue, audioLink=audioLink)
+        
+        return new_word
+
+
 class UserWordService:
 
     @staticmethod
     def get_user_words(user_id: int) -> list[UserWord]:
         user_words = UserWord.objects.filter(user__id=user_id).all()
         return user_words
+    
+    @staticmethod
+    def get_user_word(user_id: int, word_id: int) -> UserWord:
+        try:
+            user_word = UserWord.objects.get(user__id=user_id, word__id=word_id)
+            return user_word
+        except:
+            return None
+    
+    @staticmethod
+    def upload_user_words(user_words: list[dict], user_id: int) -> bool:
+
+        user = UserService.get_user_by_id(user_id=user_id)
+
+        for user_word in user_words:
+            enValue = user_word.get('enValue', None)
+            ruValue = user_word.get('ruValue', None)
+            frequency = user_word.get('frequency', None)
+
+            word = WordService.get_word(enValue=enValue)
+
+            if not word:
+                word = WordService.upload_new_word(enValue=enValue, ruValue=ruValue)
+
+            user_word = UserWordService.get_user_word(user_id=user_id, word_id=word.id)
+
+            if not user_word:
+                user_word = UserWord.objects.create(word=word, user=user, frequency=frequency)
+
+            else:
+                user_word.frequency += frequency
+                user_word.save()
+
+        return True
