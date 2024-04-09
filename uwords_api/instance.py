@@ -23,3 +23,10 @@ REDIS_URL_CACHE = os.getenv("REDIS_URL_CACHE")
 
 
 STOPWORDS = stopwords.words("russian") + stopwords.words("english")
+
+# MINIO
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
+MINIO_ROOT_USER = os.getenv("MINIO_ROOT_USER")
+MINIO_ROOT_PASSWORD = os.getenv("MINIO_ROOT_PASSWORD")
+MINIO_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME")
+MINIO_BUCKET_VOICEOVER = os.getenv("MINIO_BUCKET_VOICEOVER")

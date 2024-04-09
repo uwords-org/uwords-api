@@ -1,22 +1,41 @@
+import os
 import uuid
 import string
 import logging
 import pymorphy3
 import subprocess
-
 from gtts import gTTS
+from io import BytesIO
+from minio import Minio
 from pytube import YouTube
+from typing import BinaryIO
 from librosa import get_duration
 from googletrans import Translator
 from speech_recognition import Recognizer, AudioFile
 
 from user_api.services import UserService
 from words_api.models import UserWord, Word
-from uwords_api.instance import STOPWORDS
+from uwords_api.instance import (
+    STOPWORDS, 
+    MINIO_ENDPOINT, 
+    MINIO_ROOT_USER, 
+    MINIO_ROOT_PASSWORD,
+    MINIO_BUCKET_VOICEOVER
+)
 
 
 sr = Recognizer()
 
+mc = Minio(
+    MINIO_ENDPOINT, 
+    access_key=MINIO_ROOT_USER,
+    secret_key=MINIO_ROOT_PASSWORD, 
+    secure=False
+)
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 class AudioFileService:
@@ -32,7 +51,7 @@ class AudioFileService:
             return path
         
         except Exception as e:
-            logging.info(e)
+            logger.info(e)
             return None
         
     @staticmethod
@@ -50,7 +69,7 @@ class AudioFileService:
 
             return download_path, filename, video.title
         except Exception as e:
-            logging.info(e)
+            logger.info(e)
             return None
     
     @staticmethod
@@ -77,7 +96,7 @@ class AudioFileService:
             return files
         
         except Exception as e:
-            logging.info(e)
+            logger.info(e)
             return None
 
     @staticmethod
@@ -91,7 +110,7 @@ class AudioFileService:
             return out_path
         
         except Exception as e:
-            logging.info(e)
+            logger.info(e)
             return None
         
     @staticmethod
@@ -100,36 +119,48 @@ class AudioFileService:
             with AudioFile(filepath) as source:
                 audio_data = sr.record(source)
                 text = sr.recognize_google(audio_data, language='en-US')
-                
+      
                 return text.lower()
         
         except Exception as e:
-            logging.info(e)
+            logger.info(e)
             return ' '
         
     @staticmethod
     def speech_to_text_ru(filepath: str) -> str:
         try:
             with AudioFile(filepath) as source:
-                sr.adjust_for_ambient_noise(source, duration=0.2)
                 audio_data = sr.record(source)
                 text = sr.recognize_google(audio_data, language='ru-RU')
-                
+
                 return text.lower()
         
         except Exception as e:
-            logging.info(e)
+            logger.info(e)
             return ' '
         
     @staticmethod
     def word_to_speech(word: str):
         try:
             tts = gTTS(text=word, lang='en', slow=False)
-            path = f'audiofiles/{word.lower()}.mp3'
-            tts.save(path)
-            return path
+            
+            fp = BytesIO()
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            
+            object_name = f'{"_".join(word.lower().split())}.mp3'
+
+            MinioUploader.upload_object(
+                bucket_name=MINIO_BUCKET_VOICEOVER,
+                object_name=object_name,
+                data=fp,
+                lenght=fp.getbuffer().nbytes
+            )
+            
+            return object_name
         
-        except:
+        except Exception as e:
+            logger.info(e)
             return None
 
     @staticmethod
@@ -147,7 +178,7 @@ class AudioFileService:
                 return False
         
         except Exception as e:
-            logging.info(e)
+            logger.info(e)
             return False
         
 
@@ -220,7 +251,7 @@ class TextService:
                     })
 
             except Exception as e:
-                logging.info(e)
+                logger.info(e)
                 continue
 
         return translated_words
@@ -249,7 +280,7 @@ class UserWordService:
 
     @staticmethod
     def get_user_words(user_id: int) -> list[UserWord]:
-        user_words = UserWord.objects.filter(user__id=user_id).all()
+        user_words = UserWord.objects.filter(user__id=user_id).all().order_by('-frequency')
         return user_words
     
     @staticmethod
@@ -285,3 +316,30 @@ class UserWordService:
                 user_word.save()
 
         return True
+
+
+class MinioUploader:
+
+    @staticmethod
+    def upload_object(bucket_name: str, object_name: str, data: BinaryIO, lenght: int):
+        try:
+            found = mc.bucket_exists(bucket_name)
+
+            if not found:
+                mc.make_bucket(bucket_name)
+                logger.info(f'[MINIO] Created bucket {bucket_name}')
+            
+            mc.put_object(
+                bucket_name=bucket_name,
+                object_name=object_name,
+                data=data,
+                length=lenght,
+                part_size=10*1024*1024,
+                content_type='audio/mpeg'
+            )
+            
+            logger.info(f'[MINIO] Uploaded file {object_name}')
+        
+        except Exception as e:
+            logger.info(f'[MINIO] Error uploading file {object_name}')
+            logger.info(e)

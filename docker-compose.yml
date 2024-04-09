@@ -59,3 +59,34 @@ services:
       - db
       - redis
     
+  minio:
+    image: minio/minio:latest
+    command: server --console-address ":9001" /data/
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - ./.env
+    volumes:
+      - minio-storage:/data`
+  
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    env_file:
+      - ./.env
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 uwords_minio uwords_minio_password;
+      /usr/bin/mc rm -r --force myminio/uwords-bucket;
+      /usr/bin/mc mb myminio/uwords-bucket;
+      /usr/bin/mc policy download myminio/uwords-bucket;
+      /usr/bin/mc rm -r --force myminio/uwords-voiceover;
+      /usr/bin/mc mb myminio/uwords-voiceover;
+      /usr/bin/mc policy public myminio/uwords-voiceover;
+      exit 0;
+      "
+
+volumes:
+  minio-storage:

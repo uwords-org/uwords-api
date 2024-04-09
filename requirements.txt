@@ -16,3 +16,4 @@ translate==3.6.1
 googletrans==4.0.0rc1
 gTTS==2.5.1
 langdetect==1.0.9
+minio==7.2.5

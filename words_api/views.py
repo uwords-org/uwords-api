@@ -56,14 +56,19 @@ class WordAudioAPIView(APIView):
 
             files_paths = AudioFileService.cut_audio(path=out_path, title=title)
 
-            is_ru = AudioFileService.detect_lang(filepath=files_paths[0])
+            with ThreadPoolExecutor(max_workers=20) as executor:
+                results_ru = list(executor.map(AudioFileService.speech_to_text_ru, files_paths))
+            
+            with ThreadPoolExecutor(max_workers=20) as executor:
+                results_en = list(executor.map(AudioFileService.speech_to_text_en, files_paths))
 
-            if is_ru:
-                with ThreadPoolExecutor(max_workers=20) as executor:
-                    results = list(executor.map(AudioFileService.speech_to_text_ru, files_paths))
+            if len(' '.join(results_ru)) > len(' '.join(results_en)):
+                is_ru = True
+                results = results_ru
+            
             else:
-                with ThreadPoolExecutor(max_workers=20) as executor:
-                    results = list(executor.map(AudioFileService.speech_to_text_en, files_paths))
+                is_ru = False
+                results = results_en
 
             freq_dict = TextService.get_frequency_dict(text=' '.join(results))
 
@@ -75,8 +80,6 @@ class WordAudioAPIView(APIView):
             UserWordService.upload_user_words(user_words=translated_words, user_id=1)
 
             user_words = UserWordService.get_user_words(user_id=1)
-
-            return ResponseService.return_success(msg={"msg": translated_words})
             
             return ResponseService.return_success(msg={"msg": UserWordSerializer(user_words, many=True).data})
 
@@ -84,11 +87,11 @@ class WordAudioAPIView(APIView):
             return ResponseService.return_bad_request(msg={"msg": f"Не удалось загрузить файл. {e}"})
         
         finally:
-            for file_path in files_paths:
-                os.remove(path=file_path)
-
-            os.remove(path=inp_path)
-            os.remove(path=out_path)
+            for file_path in files_paths + [inp_path, out_path]:
+                try:
+                    os.remove(path=file_path)
+                except:
+                    continue
         
 
 class YoutubeAudioAPIView(APIView):
@@ -123,8 +126,6 @@ class YoutubeAudioAPIView(APIView):
             UserWordService.upload_user_words(user_words=translated_words, user_id=1)
 
             user_words = UserWordService.get_user_words(user_id=1)
-
-            return ResponseService.return_success(msg={"msg": translated_words})
             
             return ResponseService.return_success(msg={"msg": UserWordSerializer(user_words, many=True).data})
 
@@ -132,9 +133,8 @@ class YoutubeAudioAPIView(APIView):
             return ResponseService.return_bad_request(msg={"msg": f"Не удалось загрузить файл. {e}"})
         
         finally:
-            for file_path in files_paths:
-                os.remove(path=file_path)
-            
-            os.remove(path=inp_path)
-            os.remove(path=out_path)
-
+            for file_path in files_paths + [inp_path, out_path]:
+                try:
+                    os.remove(path=file_path)
+                except:
+                    continue
