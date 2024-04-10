@@ -8,6 +8,8 @@ class WordSerializer(serializers.ModelSerializer):
         model = Word
         fields = "__all__"
 
+    category = CategorySerializer()
+
 
 class UserWordSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,7 +17,6 @@ class UserWordSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     word = WordSerializer()
-    category = CategorySerializer()
 
 
 class YoutubeAudioSerializer(serializers.Serializer):
