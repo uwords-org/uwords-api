@@ -1,4 +1,5 @@
 import os
+import json
 import uuid
 import string
 import logging
@@ -73,7 +74,7 @@ class AudioFileService:
             return None
     
     @staticmethod
-    def cut_audio(path: str, title: str) -> list[str]:
+    def cut_audio(path: str) -> list[str]:
         files = []
         
         try:
@@ -81,16 +82,18 @@ class AudioFileService:
             duration = get_duration(filename=path)
             
             while index * 30 < duration:
-                out_path = f'output/{title}_{index}.wav'
+                new_path, audio_ext = os.path.splitext(path)
+
+                logger.info(f'[AUDIO] path: {path} new_path: {new_path}_{index + 1}.wav')
 
                 if (index + 1) * 30 < duration:
-                    cmd = f'ffmpeg -ss {index * 30} -i {path} -t 30 -ac 1 {out_path} -y'
+                    cmd = f'ffmpeg -ss {index * 30} -i {path} -t 30 -ac 1 {new_path}_{index + 1}.wav -y'
                 else:
-                    cmd = f'ffmpeg -ss {index * 30} -i {path} -ac 1 {out_path} -y'
+                    cmd = f'ffmpeg -ss {index * 30} -i {path} -ac 1 {new_path}_{index + 1}.wav -y'
 
                 subprocess.call(cmd, shell=True)
                 
-                files.append(out_path)
+                files.append(f'{new_path}_{index + 1}.wav')
                 index += 1
 
             return files
@@ -326,7 +329,35 @@ class MinioUploader:
             found = mc.bucket_exists(bucket_name)
 
             if not found:
+                policy = {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"AWS": "*"},
+                            "Action": [
+                                "s3:GetBucketLocation",
+                                "s3:ListBucket",
+                                "s3:ListBucketMultipartUploads",
+                            ],
+                            "Resource": f"arn:aws:s3:::{bucket_name}",
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"AWS": "*"},
+                            "Action": [
+                                "s3:GetObject",
+                                "s3:PutObject",
+                                "s3:DeleteObject",
+                                "s3:ListMultipartUploadParts",
+                                "s3:AbortMultipartUpload",
+                            ],
+                            "Resource": f"arn:aws:s3:::{bucket_name}/*",
+                        },
+                    ],
+                }
                 mc.make_bucket(bucket_name)
+                mc.set_bucket_policy(bucket_name, json.dumps(policy))
                 logger.info(f'[MINIO] Created bucket {bucket_name}')
             
             mc.put_object(

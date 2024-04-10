@@ -11,6 +11,8 @@ services:
     restart: always
     volumes:
       - ./:/backend
+      - ./input:/backend/input
+      - ./output:/backend/output
     ports:
       - "8000:8000"
     depends_on:
@@ -42,6 +44,9 @@ services:
       - ./.env
     environment:
       - C_FORCE_ROOT=1
+    volumes:
+      - ./input:/backend/input
+      - ./output:/backend/output
     depends_on:
       - db
       - redis
@@ -54,6 +59,9 @@ services:
       - ./.env
     environment:
       - C_FORCE_ROOT=1
+    volumes:
+      - ./input:/backend/input
+      - ./output:/backend/output
     restart: always
     depends_on:
       - db
@@ -79,12 +87,6 @@ services:
     entrypoint: >
       /bin/sh -c "
       /usr/bin/mc config host add myminio http://minio:9000 uwords_minio uwords_minio_password;
-      /usr/bin/mc rm -r --force myminio/uwords-bucket;
-      /usr/bin/mc mb myminio/uwords-bucket;
-      /usr/bin/mc policy download myminio/uwords-bucket;
-      /usr/bin/mc rm -r --force myminio/uwords-voiceover;
-      /usr/bin/mc mb myminio/uwords-voiceover;
-      /usr/bin/mc policy public myminio/uwords-voiceover;
       exit 0;
       "
 
