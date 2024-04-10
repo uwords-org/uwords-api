@@ -11,6 +11,8 @@ services:
     restart: always
     volumes:
       - ./:/backend
+      - ./input:/backend/input
+      - ./output:/backend/output
     ports:
       - "8000:8000"
     depends_on:
@@ -43,7 +45,8 @@ services:
     environment:
       - C_FORCE_ROOT=1
     volumes:
-      - ./:/backend
+      - ./input:/backend/input
+      - ./output:/backend/output
     depends_on:
       - db
       - redis
@@ -57,7 +60,8 @@ services:
     environment:
       - C_FORCE_ROOT=1
     volumes:
-      - ./:/backend
+      - ./input:/backend/input
+      - ./output:/backend/output
     restart: always
     depends_on:
       - db
