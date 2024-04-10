@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from user_api.serializers import UserDumpSerializer
+from category_api.serializers import CategorySerializer
 from words_api.models import Word, UserWord
 
 
@@ -15,6 +15,7 @@ class UserWordSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     word = WordSerializer()
+    category = CategorySerializer()
 
 
 class YoutubeAudioSerializer(serializers.Serializer):

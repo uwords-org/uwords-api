@@ -14,6 +14,7 @@ from librosa import get_duration
 from googletrans import Translator
 from speech_recognition import Recognizer, AudioFile
 
+from category_api.services import CatWordService
 from user_api.services import UserService
 from words_api.models import UserWord, Word
 from uwords_api.instance import (
@@ -275,7 +276,9 @@ class WordService:
     @staticmethod
     def upload_new_word(enValue: str, ruValue: str) -> Word:
         audioLink = AudioFileService.word_to_speech(word=enValue)
-        new_word = Word.objects.create(enValue=enValue, ruValue=ruValue, audioLink=audioLink)
+
+        category = CatWordService.get_category_by_word(ruValue=ruValue)
+        new_word = Word.objects.create(enValue=enValue, ruValue=ruValue, audioLink=audioLink, category=category)
         
         return new_word
 

@@ -1,5 +1,6 @@
 from django.db import models
 from user_api.models import User
+from category_api.models import Category
 
 
 class Word(models.Model):
@@ -26,6 +27,14 @@ class Word(models.Model):
         verbose_name='Аудиозапись',
         blank=False,
         null=True
+    )
+
+    category = models.ForeignKey(
+        Category,
+        verbose_name='Категория',
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT
     )
 
     class Meta:
