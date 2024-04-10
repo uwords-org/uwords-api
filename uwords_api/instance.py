@@ -1,11 +1,8 @@
 import os
-import nltk
 from dotenv import load_dotenv
-from nltk.corpus import stopwords
+from uwords_api.stopwords import STOPWORDS_EN, STOPWORDS_RU
 
 load_dotenv()
-
-nltk.download('stopwords')
 
 # PostgreSQL
 POSTGRES_DB = os.getenv("POSTGRES_DB")
@@ -19,7 +16,7 @@ REDIS_URL = os.getenv("REDIS_URL")
 REDIS_URL_CACHE = os.getenv("REDIS_URL_CACHE")
 
 
-STOPWORDS = stopwords.words("russian") + stopwords.words("english")
+STOPWORDS = STOPWORDS_EN + STOPWORDS_RU
 
 # MINIO
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
