@@ -18,10 +18,11 @@ from user_api.services import UserService
 from words_api.models import UserWord, Word
 from uwords_api.instance import (
     STOPWORDS, 
+    MINIO_HOST,
     MINIO_ENDPOINT, 
     MINIO_ROOT_USER, 
     MINIO_ROOT_PASSWORD,
-    MINIO_BUCKET_VOICEOVER
+    MINIO_BUCKET_VOICEOVER,
 )
 
 
@@ -160,7 +161,7 @@ class AudioFileService:
                 lenght=fp.getbuffer().nbytes
             )
             
-            return f'{MINIO_BUCKET_VOICEOVER}/{object_name}'
+            return f'{MINIO_HOST}/{MINIO_BUCKET_VOICEOVER}/{object_name}'
         
         except Exception as e:
             logger.info(e)
