@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     "user_api",
     "words_api",
+    "category_api",
 ]
 
 MIDDLEWARE = [

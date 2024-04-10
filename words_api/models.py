@@ -69,3 +69,10 @@ class UserWord(models.Model):
         verbose_name='',
         default=False
     )
+
+    class Meta:
+        verbose_name = "Слово (пользователя)"
+        verbose_name_plural = "Слова (пользователя)"
+
+    def __str__(self) -> str:
+        return f'{self.id} | {self.word.enValue} | {self.user.name}'
