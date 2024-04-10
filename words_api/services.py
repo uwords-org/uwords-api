@@ -160,7 +160,7 @@ class AudioFileService:
                 lenght=fp.getbuffer().nbytes
             )
             
-            return object_name
+            return f'{MINIO_BUCKET_VOICEOVER}/{object_name}'
         
         except Exception as e:
             logger.info(e)
