@@ -8,7 +8,7 @@ class CatWordService:
         catword = CatWord.objects.filter(ruValue=ruValue).first()
 
         if catword:
-            return catword
+            return catword.category
         
         else:
             return None
