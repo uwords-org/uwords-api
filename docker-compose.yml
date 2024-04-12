@@ -77,9 +77,6 @@ services:
       - ./.env
     volumes:
       - minio-storage:/data`
-      - /etc/letsencrypt/live/www.youwords.ru/fullchain.pem:/root/.minio/certs/public.crt:ro
-      - /etc/letsencrypt/live/www.youwords.ru/privkey.pem:/root/.minio/certs/private.key:ro
-    hostname: www.youwords.ru
   
   createbuckets:
     image: minio/mc
@@ -89,7 +86,7 @@ services:
       - ./.env
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add myminio https://minio:9000 uwords_minio uwords_minio_password;
+      /usr/bin/mc config host add myminio http://minio:9000 uwords_minio uwords_minio_password;
       exit 0;
       "
 
