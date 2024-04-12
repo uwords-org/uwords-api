@@ -1,9 +1,16 @@
 from django.contrib import admin
 from words_api.models import Word, UserWord
+from django.utils.safestring import mark_safe
 
 
 class WordAdmin(admin.ModelAdmin):
-    list_display = ("id", "enValue", "ruValue", "audioLink", )
+    list_display = ("id", "enValue", "ruValue", "get_link", )
+
+    def get_link(self, obj):
+        return mark_safe(f'<a href={obj.audioLink}>{obj.audioLink.split("/")[-1]}</a>')
+    
+    get_link.short_description = "Ссылка на аудиозапись"
+
     search_fields = ("enValue", "ruValue", )
     ordering = ("id", )
 
