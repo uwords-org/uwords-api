@@ -33,7 +33,7 @@ mc = Minio(
     MINIO_ENDPOINT, 
     access_key=MINIO_ROOT_USER,
     secret_key=MINIO_ROOT_PASSWORD, 
-    secure=True
+    secure=False
 )
 
 
