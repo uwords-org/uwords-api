@@ -30,7 +30,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS = ['https://youwords.ru']
+CSRF_TRUSTED_ORIGINS = ['https://youwords.ru:8000', 'https://www.youwords.ru:8000']
 
 # Application definition
 
