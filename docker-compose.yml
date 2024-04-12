@@ -77,7 +77,9 @@ services:
       - ./.env
     volumes:
       - minio-storage:/data`
-  
+      - /etc/letsencrypt/live/www.youwords.ru/fullchain.pem:/root/.minio/certs/public.crt:ro
+      - /etc/letsencrypt/live/www.youwords.ru/privkey.pem:/root/.minio/certs/private.key:ro
+    hostname: www.youwords.ru
   createbuckets:
     image: minio/mc
     depends_on:
