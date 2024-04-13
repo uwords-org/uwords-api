@@ -69,10 +69,10 @@ services:
     
   minio:
     image: minio/minio:latest
-    command: server --console-address ":9001" /data/
+    command: server --console-address ":9010" /data/
     ports:
       - "9001:9000"
-      - "9011:9001"
+      - "9011:9010"
     env_file:
       - ./.env
     volumes:
