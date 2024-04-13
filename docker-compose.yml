@@ -86,6 +86,7 @@ services:
       - ./.env
     entrypoint: >
       /bin/sh -c "
+      sleep 10;
       /usr/bin/mc config host add myminio http://minio:9000 uwords_minio uwords_minio_password;
       exit 0;
       "
